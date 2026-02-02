@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Score10 Risk Calculator</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121a33; --text:#e9ecf5; --muted:#aab3d1; --accent:#7aa2ff; --border:#22305f; }
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #070a14);
+      color: var(--text);
+    }
+    .wrap{ max-width: 980px; margin: 32px auto; padding: 0 16px; }
+    h1{ font-size: 24px; margin: 0 0 6px; }
+    p{ margin: 0 0 18px; color: var(--muted); }
+    .grid{
+      display:grid; grid-template-columns: 1fr; gap: 14px;
+    }
+    @media (min-width: 860px){
+      .grid{ grid-template-columns: 1.2fr 0.8fr; gap: 16px; align-items:start; }
+    }
+    .card{
+      background: rgba(18,26,51,0.85);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      padding: 16px;
+    }
+    .section-title{
+      font-size: 14px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 10px;
+    }
+    .vars{
+      display:grid; grid-template-columns: 1fr; gap: 10px;
+    }
+    @media (min-width: 560px){
+      .vars{ grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+    }
+    label.var{
+      display:flex; gap: 10px; align-items:flex-start;
+      padding: 10px; border: 1px solid rgba(34,48,95,0.7);
+      border-radius: 12px; background: rgba(10,14,30,0.35);
+    }
+    label.var:hover{ border-color: rgba(122,162,255,0.65); }
+    input[type="checkbox"]{ transform: translateY(2px) scale(1.1); accent-color: var(--accent); }
+    .var .name{ font-weight: 650; }
+    .var .coef{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .row{ display:flex; gap: 10px; align-items:center; flex-wrap:wrap; margin: 10px 0 0; }
+    .field{
+      display:flex; flex-direction:column; gap: 6px; width: 220px;
+    }
+    .field input{
+      padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(34,48,95,0.9);
+      background: rgba(10,14,30,0.45);
+      color: var(--text);
+      outline: none;
+    }
+    .field input:focus{ border-color: rgba(122,162,255,0.9); box-shadow: 0 0 0 3px rgba(122,162,255,0.18); }
+    button{
+      padding: 10px 14px; border-radius: 12px;
+      border: 1px solid rgba(122,162,255,0.8);
+      background: rgba(122,162,255,0.18);
+      color: var(--text);
+      cursor:pointer; font-weight: 650;
+    }
+    button:hover{ background: rgba(122,162,255,0.28); }
+    button.secondary{
+      border-color: rgba(170,179,209,0.6);
+      background: rgba(170,179,209,0.10);
+      font-weight: 600;
+    }
+    .result{
+      display:grid; gap: 12px;
+    }
+    .result .big{
+      font-size: 38px; font-weight: 800; letter-spacing: -0.02em;
+      margin: 6px 0 0;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap: 8px;
+      padding: 8px 10px; border-radius: 999px;
+      border: 1px solid rgba(34,48,95,0.9);
+      background: rgba(10,14,30,0.35);
+      color: var(--muted);
+      width: fit-content;
+    }
+    .note{ font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .divider{ height:1px; background: rgba(34,48,95,0.8); margin: 12px 0; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Score10 Risk Calculator</h1>
+    <p>Check the boxes that apply, enter <span class="mono">meld_xi</span>, then click <b>Calculate</b>.</p>
+
+    <div class="grid">
+      <!-- Inputs -->
+      <div class="card">
+        <div class="section-title">Binary variables (0/1)</div>
+        <div class="vars" id="vars"></div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="meld_xi" class="name"><span class="mono">meld_xi</span> (numeric)</label>
+            <input id="meld_xi" type="number" step="0.01" placeholder="e.g., 12.34" />
+          </div>
+
+          <div class="field" style="width:auto; margin-top: 22px;">
+            <button id="calcBtn" type="button">Calculate</button>
+            <button id="resetBtn" type="button" class="secondary">Reset</button>
+          </div>
+        </div>
+
+        <p class="note" style="margin-top:12px;">
+          Assumes checked = 1, unchecked = 0. Coefficients match your Stata code.
+        </p>
+      </div>
+
+      <!-- Output -->
+      <div class="card">
+        <div class="section-title">Result</div>
+        <div class="result">
+          <div class="pill">score10</div>
+          <div class="big" id="scoreOut">—</div>
+
+          <div class="pill">Category</div>
+          <div style="font-size:18px; font-weight:700;" id="catOut">—</div>
+
+          <div class="divider"></div>
+
+          <div class="pill">Formula</div>
+          <div class="note mono" style="white-space: pre-wrap;" id="formulaOut"></div>
+
+          <div class="divider"></div>
+
+          <div class="note">
+            Categories:
+            <span class="mono">Low ≤13</span>,
+            <span class="mono">Moderate 13–18</span>,
+            <span class="mono">High 18–31</span>,
+            <span class="mono">Very high &gt;31</span>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Coefficients (binary vars use checkbox; meld_xi uses numeric input)
+    const MODEL = [
+      { key: "CENTER_VOL_5",       coef:  3.201134439, type: "binary" },
+      { key: "CENTER_VOL_12",      coef: -2.270437723, type: "binary" },
+      { key: "age1",               coef:  3.735670653, type: "binary" },
+      { key: "age11_13",           coef: -6.347318681, type: "binary" },
+      { key: "age5_6",             coef:  5.649489698, type: "binary" },
+      { key: "dage22plus",         coef:  4.376786359, type: "binary" },
+      { key: "cod_999",            coef:  5.253360367, type: "binary" },
+      { key: "HGT_RATIO_HIGH",     coef:  3.558994433, type: "binary" },
+      { key: "DIAG_nosurg_CHD",    coef:  6.441370672, type: "binary" },
+      { key: "DIAG_surg_CHD",      coef: 12.0072624,   type: "binary" },
+      { key: "medicaid",           coef:  4.43259163,  type: "binary" },
+      { key: "IV_THERAPY_INF",     coef:  2.97083738,  type: "binary" },
+      { key: "hawai_pac_ind_alask",coef:  8.335493527, type: "binary" },
+      { key: "vad_3_4",            coef:  6.824203533, type: "binary" },
+      { key: "y_ventilator",       coef:  3.564940276, type: "binary" },
+      { key: "y_ecmo",             coef:  8.121272772, type: "binary" },
+      { key: "meld_xi",            coef:  0.397523026, type: "numeric" },
+      { key: "y_steroids",         coef:  3.975485211, type: "binary" },
+      { key: "hispanic",           coef: -3.887255496, type: "binary" },
+      { key: "lt3_albumin",        coef:  2.570872888, type: "binary" },
+      { key: "eGFR_TRR_LE55",      coef:  7.554048212, type: "binary" },
+      { key: "INHALED_NO_TRR",     coef: 11.32158922,  type: "binary" }
+    ];
+
+    const varsDiv = document.getElementById("vars");
+    const scoreOut = document.getElementById("scoreOut");
+    const catOut = document.getElementById("catOut");
+    const formulaOut = document.getElementById("formulaOut");
+    const meldInput = document.getElementById("meld_xi");
+
+    // Build checkbox UI
+    function buildUI() {
+      varsDiv.innerHTML = "";
+      MODEL.filter(v => v.type === "binary").forEach(v => {
+        const id = `chk_${v.key}`;
+        const label = document.createElement("label");
+        label.className = "var";
+        label.htmlFor = id;
+        label.innerHTML = `
+          <input id="${id}" type="checkbox" />
+          <div>
+            <div class="name mono">${v.key}</div>
+            <div class="coef">coef: ${v.coef}</div>
+          </div>
+        `;
+        varsDiv.appendChild(label);
+      });
+      formulaOut.textContent = writtenFormula();
+    }
+
+    function writtenFormula() {
+      // Single-line formula using variable names
+      const terms = MODEL.map(v => {
+        const sign = v.coef < 0 ? " − " : " + ";
+        const mag = Math.abs(v.coef);
+        return `${sign}${mag}*(${v.key})`;
+      });
+      // Remove leading " + "
+      return ("score10 =" + terms.join("")).replace("score10 = + ", "score10 = ");
+    }
+
+    function getBinaryValue(key) {
+      const el = document.getElementById(`chk_${key}`);
+      return el && el.checked ? 1 : 0;
+    }
+
+    function calcCategory(score) {
+      if (score <= 13) return "Low";
+      if (score > 13 && score <= 18) return "Moderate";
+      if (score > 18 && score <= 31) return "High";
+      return "Very High";
+    }
+
+    function calculate() {
+      const meld = Number(meldInput.value);
+      if (!Number.isFinite(meld)) {
+        alert("Please enter a valid numeric meld_xi value.");
+        return;
+      }
+
+      let score = 0;
+      for (const v of MODEL) {
+        if (v.type === "binary") score += v.coef * getBinaryValue(v.key);
+        else score += v.coef * meld;
+      }
+
+      // Format outputs
+      scoreOut.textContent = score.toFixed(3);
+      catOut.textContent = calcCategory(score);
+    }
+
+    function resetAll() {
+      MODEL.filter(v => v.type === "binary").forEach(v => {
+        const el = document.getElementById(`chk_${v.key}`);
+        if (el) el.checked = false;
+      });
+      meldInput.value = "";
+      scoreOut.textContent = "—";
+      catOut.textContent = "—";
+    }
+
+    document.getElementById("calcBtn").addEventListener("click", calculate);
+    document.getElementById("resetBtn").addEventListener("click", resetAll);
+
+    buildUI();
+  </script>
+</body>
+</html>
