@@ -125,7 +125,7 @@
 
       <!-- Output -->
       <div class="card">
-        <div class="section-title">Result</div>
+        <div class="section-title">1-year mortality risk</div>
         <div class="result">
           <div class="pill">1-year mortality risk</div>
           <div class="big" id="scoreOut">—</div>
@@ -202,25 +202,26 @@
     const meldInput = document.getElementById("meld_xi");
 
     // Build checkbox UI
-    function buildUI() {
-      varsDiv.innerHTML = "";
-      MODEL.filter(v => v.type === "binary").forEach(v => {
-        const id = `chk_${v.key}`;
-        const label = document.createElement("label");
-        label.className = "var";
-        label.htmlFor = id;
-        label.innerHTML = `
-         label.innerHTML = `
-  <input id="${id}" type="checkbox" />
-  <div>
-    <div class="name">${v.label}</div>
-    <div class="coef mono">${v.key} • coef: ${v.coef}</div>
-  </div>
-`;
-        varsDiv.appendChild(label);
-      });
-      formulaOut.textContent = writtenFormula();
-    }
+function buildUI() {
+  varsDiv.innerHTML = "";
+  MODEL.filter(v => v.type === "binary").forEach(v => {
+    const id = `chk_${v.key}`;
+    const row = document.createElement("label");
+    row.className = "var";
+    row.htmlFor = id;
+
+    row.innerHTML = `
+      <input id="${id}" type="checkbox" />
+      <div>
+        <div class="name">${v.label}</div>
+        <div class="coef mono">${v.key} • coef: ${v.coef}</div>
+      </div>
+    `;
+
+    varsDiv.appendChild(row);
+  });
+  formulaOut.textContent = writtenFormula();
+}
 
     function writtenFormula() {
       // Single-line formula using variable names
